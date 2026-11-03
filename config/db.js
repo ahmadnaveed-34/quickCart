@@ -10,18 +10,21 @@ async function connectDB() {
   if (cached.conn) {
     return cached.conn;
   }
+
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
     };
 
-    const uri = process.env.MONGODB_URI?.replace(/\/$/, "");
     cached.promise = mongoose
-      .connect(`${uri}/quickcart`, opts)
-      .then((mongoose) => {
-        return mongoose;
+      .connect(process.env.MONGODB_URI, opts)
+      .then((mongoose) => mongoose)
+      .catch((err) => {
+        cached.promise = null;
+        throw err;
       });
   }
+
   cached.conn = await cached.promise;
   return cached.conn;
 }
