@@ -1,12 +1,11 @@
 import User from "@/models/User";
-import ingest from "ingest";
 import { Inngest } from "inngest";
 import connectDB from "./db";
 
 export const inngest = new Inngest({ id: "quickcart-next" });
 
-// Ingest Function to save user to database
-export const syncUserCreation = ingest.createFunction(
+// Inngest Function to save user to database
+export const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event }) => {
@@ -14,7 +13,7 @@ export const syncUserCreation = ingest.createFunction(
       event.data;
     const userData = {
       _id: id,
-      name: `${first_name} + " " + ${last_name}`,
+      name: `${first_name} ${last_name}`,
       email: email_addresses[0].email_address,
       imageUrl: image_url,
       cartItems: {},
@@ -24,15 +23,15 @@ export const syncUserCreation = ingest.createFunction(
   },
 );
 
-// Ingest Function to update user in database
-export const syncUserUpdation = ingest.createFunction(
+// Inngest Function to update user in database
+export const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } =
       event.data;
     const userData = {
-      name: `${first_name} + " " + ${last_name}`,
+      name: `${first_name} ${last_name}`,
       email: email_addresses[0].email_address,
       imageUrl: image_url,
     };
@@ -41,8 +40,8 @@ export const syncUserUpdation = ingest.createFunction(
   },
 );
 
-// Ingest Function to delete user from database
-export const syncUserDeletion = ingest.createFunction(
+// Inngest Function to delete user from database
+export const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
