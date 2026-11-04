@@ -14,6 +14,7 @@ async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      dbName: "quickcart",
     };
 
     cached.promise = mongoose

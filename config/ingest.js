@@ -59,19 +59,30 @@ export const createUserOrder = inngest.createFunction(
     batchEvents: { maxSize: 5, timeout: "5s" },
   },
   { event: "order/created" },
-  async ({ events }) => {
-    const orders = events.map((event) => {
-      return {
-        userId: event.data.userId,
-        items: event.data.items,
-        amount: event.data.amount,
-        address: event.data.address,
-        date: event.data.date,
-      };
+  async ({ events, step }) => {
+    const orders = await step.run("prepare-orders", async () => {
+      return events
+        .filter((event) => !event.data.orderId) // skip if already saved in API
+        .map((event) => ({
+          userId: event.data.userId,
+          items: event.data.items,
+          amount: event.data.amount,
+          address: String(event.data.address),
+          date: event.data.date,
+          status: "Order Placed",
+        }));
     });
 
-    await connectDB();
-    await Order.insertMany(orders);
-    return { success: true, processed: orders.length };
+    if (!orders.length) {
+      return { success: true, processed: 0, skipped: events.length };
+    }
+
+    const result = await step.run("insert-orders", async () => {
+      await connectDB();
+      const inserted = await Order.insertMany(orders, { ordered: true });
+      return { processed: inserted.length };
+    });
+
+    return { success: true, ...result };
   },
 );

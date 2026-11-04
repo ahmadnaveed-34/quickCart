@@ -12,10 +12,19 @@ const orderSchema = new mongoose.Schema({
     },
   ],
   amount: { type: Number, required: true },
-  address: { type: String, required: true },
+  address: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "Address",
+  },
   status: { type: String, required: true, default: "Order Placed" },
   date: { type: Number, required: true },
 });
 
-const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
+// Clear cached model so schema updates (like ref) apply in Next.js hot reload
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+
+const Order = mongoose.model("Order", orderSchema);
 export default Order;
