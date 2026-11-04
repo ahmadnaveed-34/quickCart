@@ -1,7 +1,7 @@
 import connectDB from "@/config/db";
 import authSeller from "@/lib/authSeller";
+import { getUserId } from "@/lib/getUserId";
 import Product from "@/models/Product";
-import { getAuth } from "@clerk/nextjs/server";
 import { v2 as cloudinary } from "cloudinary";
 import { NextResponse } from "next/server";
 
@@ -23,7 +23,7 @@ export async function POST(request) {
   try {
     configureCloudinary();
 
-    const { userId } = getAuth(request);
+    const userId = await getUserId(request);
 
     if (!userId) {
       return NextResponse.json({
@@ -82,7 +82,7 @@ export async function POST(request) {
       category,
       price: Number(price),
       offerPrice: Number(offerPrice),
-      images: image,
+      image: image,
       date: Date.now(),
     });
 

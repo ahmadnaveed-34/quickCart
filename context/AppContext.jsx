@@ -1,5 +1,4 @@
 "use client";
-import { productsDummyData, userDummyData } from "@/assets/assets";
 import { useAuth, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -16,7 +15,7 @@ export const AppContextProvider = (props) => {
   const currency = process.env.NEXT_PUBLIC_CURRENCY;
   const router = useRouter();
 
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
   const { getToken } = useAuth();
 
   const [products, setProducts] = useState([]);
@@ -24,26 +23,47 @@ export const AppContextProvider = (props) => {
   const [isSeller, setIsSeller] = useState(false);
   const [cartItems, setCartItems] = useState({});
 
-  const fetchProductData = async () => {
-    setProducts(productsDummyData);
+  const authHeaders = async () => {
+    const token = await getToken();
+    if (!token) return null;
+    return { Authorization: `Bearer ${token}` };
   };
 
-  const fetchUserData = async () => {
+  const fetchProductData = async () => {
     try {
-      if (user.publicMetadata.role === "seller") {
+      const { data } = await axios.get("/api/product/list");
+
+      if (data.success) {
+        setProducts(data.products);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const fetchUserData = async (retry = true) => {
+    try {
+      if (user?.publicMetadata?.role === "seller") {
         setIsSeller(true);
       }
 
-      const token = await getToken();
-      const { data } = await axios.get("/api/user/data", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const headers = await authHeaders();
+      if (!headers) {
+        if (retry) {
+          setTimeout(() => fetchUserData(false), 500);
+        }
+        return;
+      }
+
+      const { data } = await axios.get("/api/user/data", { headers });
 
       if (data.success) {
         setUserData(data.user);
-        setCartItems(data.user.cartItems);
+        setCartItems(data.user.cartItems || {});
+      } else if (data.message === "Unauthorized" && retry) {
+        setTimeout(() => fetchUserData(false), 500);
       } else {
         toast.error(data.message);
       }
@@ -60,6 +80,18 @@ export const AppContextProvider = (props) => {
       cartData[itemId] = 1;
     }
     setCartItems(cartData);
+
+    if (user) {
+      try {
+        const headers = await authHeaders();
+        if (!headers) return;
+
+        await axios.post("/api/cart/update", { cartData }, { headers });
+        toast.success("Item added to cart");
+      } catch (error) {
+        toast.error(error.message);
+      }
+    }
   };
 
   const updateCartQuantity = async (itemId, quantity) => {
@@ -70,6 +102,18 @@ export const AppContextProvider = (props) => {
       cartData[itemId] = quantity;
     }
     setCartItems(cartData);
+
+    if (user) {
+      try {
+        const headers = await authHeaders();
+        if (!headers) return;
+
+        await axios.post("/api/cart/update", { cartData }, { headers });
+        toast.success("Cart updated");
+      } catch (error) {
+        toast.error(error.message);
+      }
+    }
   };
 
   const getCartCount = () => {
@@ -86,7 +130,7 @@ export const AppContextProvider = (props) => {
     let totalAmount = 0;
     for (const items in cartItems) {
       let itemInfo = products.find((product) => product._id === items);
-      if (cartItems[items] > 0) {
+      if (cartItems[items] > 0 && itemInfo) {
         totalAmount += itemInfo.offerPrice * cartItems[items];
       }
     }
@@ -98,10 +142,10 @@ export const AppContextProvider = (props) => {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (isUserLoaded && user) {
       fetchUserData();
     }
-  }, [user]);
+  }, [isUserLoaded, user]);
 
   const value = {
     user,

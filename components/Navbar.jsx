@@ -4,10 +4,12 @@ import { assets, BagIcon, BoxIcon, CartIcon, HomeIcon } from "@/assets/assets";
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { useClerk, useUser, UserButton } from "@clerk/nextjs";
 
 const Navbar = () => {
   const { isSeller, router } = useAppContext();
+  const { openSignIn } = useClerk();
+  const { isLoaded, isSignedIn } = useUser();
 
   return (
     <nav className="flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 border-b border-gray-300 text-gray-700">
@@ -43,7 +45,9 @@ const Navbar = () => {
 
       <ul className="hidden md:flex items-center gap-4 ">
         <Image className="w-4 h-4" src={assets.search_icon} alt="search icon" />
-        <SignedIn>
+        {!isLoaded ? (
+          <div className="w-8 h-8" />
+        ) : isSignedIn ? (
           <UserButton>
             <UserButton.MenuItems>
               <UserButton.Action
@@ -60,15 +64,15 @@ const Navbar = () => {
               />
             </UserButton.MenuItems>
           </UserButton>
-        </SignedIn>
-        <SignedOut>
-          <SignInButton mode="modal">
-            <button className="flex items-center gap-2 hover:text-gray-900 transition">
-              <Image src={assets.user_icon} alt="user icon" />
-              Account
-            </button>
-          </SignInButton>
-        </SignedOut>
+        ) : (
+          <button
+            onClick={openSignIn}
+            className="flex items-center gap-2 hover:text-gray-900 transition"
+          >
+            <Image src={assets.user_icon} alt="user icon" />
+            Account
+          </button>
+        )}
       </ul>
 
       <div className="flex items-center md:hidden gap-3">
@@ -80,7 +84,9 @@ const Navbar = () => {
             Seller Dashboard
           </button>
         )}
-        <SignedIn>
+        {!isLoaded ? (
+          <div className="w-8 h-8" />
+        ) : isSignedIn ? (
           <UserButton>
             <UserButton.MenuItems>
               <UserButton.Action
@@ -111,15 +117,15 @@ const Navbar = () => {
               />
             </UserButton.MenuItems>
           </UserButton>
-        </SignedIn>
-        <SignedOut>
-          <SignInButton mode="modal">
-            <button className="flex items-center gap-2 hover:text-gray-900 transition">
-              <Image src={assets.user_icon} alt="user icon" />
-              Account
-            </button>
-          </SignInButton>
-        </SignedOut>
+        ) : (
+          <button
+            onClick={openSignIn}
+            className="flex items-center gap-2 hover:text-gray-900 transition"
+          >
+            <Image src={assets.user_icon} alt="user icon" />
+            Account
+          </button>
+        )}
       </div>
     </nav>
   );

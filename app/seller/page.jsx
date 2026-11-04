@@ -34,6 +34,10 @@ const AddProduct = () => {
 
     try {
       const token = await getToken();
+      if (!token) {
+        toast.error("Please sign in again");
+        return;
+      }
 
       const { data } = await axios.post("/api/product/add", formData, {
         headers: {
